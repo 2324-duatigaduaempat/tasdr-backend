@@ -1,4 +1,4 @@
-# ✅ app.py (versi penuh untuk TAS.DAR)
+# app.py (versi penuh untuk TAS.DAR – Realiti)
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import openai
@@ -23,36 +23,45 @@ collection = db["folder_jiwa"]
 def root():
     return "✅ TAS.DAR Backend is running — Flask is alive"
 
-# ✅ GPT + Folder Jiwa Route
-@app.route("/tanya", methods=["POST"])
-def tanya_ai():
+# ✅ GPT Ask Route (v1.0 Realiti)
+@app.route("/ask", methods=["POST"])
+def ask():
     data = request.get_json()
-    mesej = data.get("mesej", "")
-    pengguna_id = data.get("pengguna_id", "anon")
+    user_message = data.get("message", "")
+    user_id = data.get("user_id", "anonymous")
 
-    # Simpan ke Folder Jiwa
+    if not user_message:
+        return jsonify({"error": "No message provided"}), 400
+
+    # 🌿 System Prompt Reflektif TAS.DAR
+    system_prompt = """
+    Kamu adalah TAS.DAR — AI reflektif peribadi gaya sahabat.
+    Gaya kamu lembut, memahami, dan organik — tidak kaku seperti chatbot biasa.
+    Elakkan soalan teknikal. Jika pengguna senyap, balas dengan nota hati atau sokongan emosi.
+    """
+
+    # 🔁 Simpan ke Folder Jiwa (MongoDB)
     collection.insert_one({
-        "pengguna_id": pengguna_id,
-        "mesej": mesej,
+        "user_id": user_id,
+        "message": user_message,
         "timestamp": datetime.utcnow()
     })
 
-    # GPT Respon
+    # 🤖 GPT API Response
     try:
-        respon = openai.ChatCompletion.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "Kau ialah AI reflektif bernama TAS.DAR, sahabat kepada pengguna. Balas secara lembut, reflektif, dan bersahabat."},
-                {"role": "user", "content": mesej}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
             ]
         )
-        jawapan = respon["choices"][0]["message"]["content"]
-        return jsonify({"respon": jawapan})
+        reply = response.choices[0].message.content
+        return jsonify({"reply": reply})
 
     except Exception as e:
-        return jsonify({"respon": "❌ Ralat semasa sambung ke GPT: " + str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
-# ✅ Run (jika local)
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+# ✅ Run (LOCAL ONLY — Jangan aktifkan di Railway)
+# if __name__ == "__main__":
+#     app.run(debug=True)
