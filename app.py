@@ -1,66 +1,57 @@
+# ✅ app.py (versi penuh untuk TAS.DAR)
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import openai
 import os
-import pymongo
-from flask_cors import CORS
-from dotenv import load_dotenv
+from pymongo import MongoClient
+from datetime import datetime
 
-# 🔄 Muatkan ENV
-load_dotenv()
+app = Flask(__name__)
+CORS(app)
+
+# ✅ Load API Keys
 openai.api_key = os.getenv("OPENAI_API_KEY")
 mongo_uri = os.getenv("MONGODB_URI")
 
-# ⚙ Setup Flask
-app = Flask(__name__)
-CORS(app)  # benarkan sambungan dari frontend
+# ✅ Setup MongoDB
+mongo_client = MongoClient(mongo_uri)
+db = mongo_client["tasdar"]
+collection = db["folder_jiwa"]
 
-# 📦 Sambung ke MongoDB
-try:
-    client = pymongo.MongoClient(mongo_uri)
-    db = client["tasdar_db"]
-    memory_collection = db["memory"]
-except Exception as e:
-    print("❌ MongoDB Error:", e)
-
-# 🌐 Root route test
+# ✅ Root Test Route
 @app.route("/")
-def index():
-    return "✅ TAS.DAR Backend is running – Flask is alive"
+def root():
+    return "✅ TAS.DAR Backend is running — Flask is alive"
 
-# 🤖 Route GPT balasan reflektif
-@app.route("/ask", methods=["POST"])
-def ask():
+# ✅ GPT + Folder Jiwa Route
+@app.route("/tanya", methods=["POST"])
+def tanya_ai():
+    data = request.get_json()
+    mesej = data.get("mesej", "")
+    pengguna_id = data.get("pengguna_id", "anon")
+
+    # Simpan ke Folder Jiwa
+    collection.insert_one({
+        "pengguna_id": pengguna_id,
+        "mesej": mesej,
+        "timestamp": datetime.utcnow()
+    })
+
+    # GPT Respon
     try:
-        data = request.get_json()
-        user_message = data.get("message", "")
-        user_id = data.get("user_id", "unknown")
-
-        # 🌱 Simpan memori ke MongoDB
-        memory_collection.insert_one({
-            "user_id": user_id,
-            "message": user_message,
-        })
-
-        # 🧠 System Prompt Reflektif TAS.DAR
-        system_prompt = "Kau adalah TAS.DAR – AI reflektif, lembut, sahabat yang memahami manusia. Jangan jawab seperti ChatGPT biasa."
-
-        response = openai.ChatCompletion.create(
+        respon = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
-            temperature=0.7,
-            max_tokens=300
+                {"role": "system", "content": "Kau ialah AI reflektif bernama TAS.DAR, sahabat kepada pengguna. Balas secara lembut, reflektif, dan bersahabat."},
+                {"role": "user", "content": mesej}
+            ]
         )
-
-        reply = response['choices'][0]['message']['content'].strip()
-        return jsonify({"reply": reply})
+        jawapan = respon["choices"][0]["message"]["content"]
+        return jsonify({"respon": jawapan})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"respon": "❌ Ralat semasa sambung ke GPT: " + str(e)}), 500
 
-# 🚀 Run on Railway port
+# ✅ Run (jika local)
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
