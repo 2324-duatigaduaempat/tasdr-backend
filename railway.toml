@@ -1,6 +1,8 @@
 [build]
-  builder = "NIXPACKS"
+  start = "python app.py"
 
-[start]
-  cmd = "python app.py"
-  port = 8080
+[deploy]
+  startCommand = "python app.py"
+
+[env]
+  PORT = "8080"
