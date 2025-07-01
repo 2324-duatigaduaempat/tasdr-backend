@@ -1,4 +1,5 @@
 flask
+python-dotenv
 openai
 pymongo
-python-dotenv
+flask-cors
