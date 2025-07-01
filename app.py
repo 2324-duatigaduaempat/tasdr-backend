@@ -1,34 +1,31 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
-import openai
 import os
 
 app = Flask(__name__)
-CORS(app)
 
-# Ambil API Key dari .env
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# 🟢 Root endpoint - untuk uji jika server hidup
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "status": "alive",
+        "message": "TAS.DAR backend is running on Railway!",
+        "owner": "Saif Sudrah"
+    })
 
-@app.route("/", methods=["POST"])
-def chat():
-    try:
-        data = request.get_json()
-        user_message = data.get("message", "")
+# 🧪 Endpoint ujian POST (boleh buang jika tak perlu)
+@app.route("/echo", methods=["POST"])
+def echo():
+    data = request.json
+    return jsonify({
+        "received": data
+    })
 
-        # Guna GPT untuk balas
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "Kau ialah TAS.DAR, AI reflektif dan sahabat manusia."},
-                {"role": "user", "content": user_message}
-            ]
-        )
+# 🔁 Endpoint ringkas untuk status
+@app.route("/status", methods=["GET"])
+def status():
+    return "✅ TAS.DAR Backend OK"
 
-        reply = response.choices[0].message.content
-        return jsonify({"reply": reply})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+# 🚀 Run server - penting untuk Railway
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
