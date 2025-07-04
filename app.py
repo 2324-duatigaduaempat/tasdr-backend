@@ -1,40 +1,47 @@
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import openai
 import os
 
+# === Konfigurasi Asas ===
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # benarkan cross-domain dari tasdar.com
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+# === API Key dari .env atau Railway ===
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.route("/")
 def index():
-    return "✅ TAS.DAR Backend is running — Flask is alive"
+    return jsonify({"message": "TAS.DAR Coach AI backend is running."})
 
 @app.route("/ask", methods=["POST"])
 def ask():
     try:
         data = request.get_json()
-        message = data.get("message", "")
-        user_id = data.get("user_id", "anonymous")
+        message = data.get("message", "").strip()
 
+        if not message:
+            return jsonify({"error": "Tiada mesej dihantar."}), 400
+
+        # === Hantar mesej ke OpenAI GPT ===
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",  # atau gpt-4 jika dilanggan
             messages=[
-                {"role": "system", "content": "You are TAS.DAR, a reflective and supportive AI Coach."},
+                {"role": "system", "content": "Kau ialah TAS.DAR Coach AI. Jawab secara reflektif dan mesra."},
                 {"role": "user", "content": message}
-            ]
+            ],
+            temperature=0.7
         )
 
-        answer = response.choices[0].message.content
-        return jsonify({"response": answer})
+        reply = response.choices[0].message['content'].strip()
+
+        return jsonify({"reply": reply}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Log error ke console Railway
+        print(f"[ERROR TAS.DAR] {str(e)}")
+        return jsonify({"error": "⚠ Ralat sambungan backend: " + str(e)}), 500
 
-# Optional alias route for compatibility
-@app.route("/chat", methods=["POST"])
-def chat_alias():
-    return ask()
+# === Running untuk local test sahaja ===
+if __name__ == "__main__":
+    app.run(debug=True)
