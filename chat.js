@@ -6,7 +6,7 @@ messages.appendChild(userDiv);
 input.value = "";
 
 try {
-    const response = await fetch("https://tasdar-coach.onrender.com/chat", {
+    const response = await fetch("https://www.tasdar.com/chats", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
