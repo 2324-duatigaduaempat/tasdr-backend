@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <title>TAS.DAR Coach AI</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; background: #f4f4f4; }
+    #chatbox { width: 100%; height: 300px; border: 1px solid #ccc; overflow-y: auto; padding: 10px; background: white; margin-bottom: 20px; }
+    #userInput { width: 80%; padding: 10px; font-size: 16px; }
+    #sendBtn { padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h2>TAS.DAR Coach AI</h2>
+
+  <div id="chatbox"></div>
+
+  <input type="text" id="userInput" placeholder="Tulis mesej anda..." />
+  <button id="sendBtn">Hantar</button>
+
+  <script>
+    const chatbox = document.getElementById("chatbox");
+    const input = document.getElementById("userInput");
+    const button = document.getElementById("sendBtn");
+
+    button.onclick = async () => {
+      const message = input.value.trim();
+      if (!message) return;
+
+      chatbox.innerHTML += <div><strong>Anda:</strong> ${message}</div>;
+      input.value = "";
+
+      try {
+        const response = await fetch("https://web-production-3feb8b.up.railway.app/ask", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+
+        if (data.reply) {
+          chatbox.innerHTML += <div><strong>TAS.DAR:</strong> ${data.reply}</div>;
+        } else if (data.error) {
+          chatbox.innerHTML += <div style="color:red;"><strong>Ralat:</strong> ${data.error}</div>;
+        } else {
+          chatbox.innerHTML += <div style="color:red;"><strong>Ralat:</strong> Balasan tidak sah.</div>;
+        }
+
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+      } catch (err) {
+        chatbox.innerHTML += <div style="color:red;"><strong>Ralat sambungan:</strong> ${err}</div>;
+      }
+    };
+  </script>
+</body>
+</html>
